@@ -4,9 +4,9 @@ import re
 def parse_address(addr):
     try:
         parts = addr.split(',')
-        street = parts[0].strip() if len(parts) > 0 else ''
-        city = parts[1].strip() if len(parts) > 1 else ''
-        state_zip = parts[2].strip() if len(parts) > 2 else ''
+        street = parts[1].strip() if len(parts) > 1 else ''
+        city = parts[2].strip() if len(parts) > 2 else ''
+        state_zip = parts[3].strip() if len(parts) > 3 else ''
         match = re.search(r'([A-Z]{2})\s+(\d{5})', state_zip)
         state = match.group(1) if match else ''
         zip_code = match.group(2) if match else ''
@@ -30,7 +30,8 @@ def us_state_full(abbrev):
     return mapping.get(abbrev, abbrev)
 
 def generate_customer_import(po_df, output_path):
-    df = po_df  # ✅ already a DataFrame from Streamlit
+    df = po_df.copy()
+    df['Customer Shipping Address'] = df['Customer Shipping Address'].fillna('')
     df[['street', 'city', 'state_code', 'zip']] = df['Customer Shipping Address'].apply(parse_address)
     df['state_id'] = df['state_code'].apply(us_state_full).apply(lambda x: f"{x} (US)")
     df['is_company'] = 0
@@ -40,9 +41,11 @@ def generate_customer_import(po_df, output_path):
     df['phone'] = df['Customer Phone Number']
     df['street2'] = df['mobile'] = df['email'] = df['vat'] = ''
     df['bank_ids/bank'] = df['bank_ids/acc_number'] = ''
+
     odoo_customers = df[[
         'name', 'is_company', 'company_name', 'country_id', 'state_id', 'zip',
         'city', 'street', 'street2', 'phone', 'mobile', 'email', 'vat',
         'bank_ids/bank', 'bank_ids/acc_number'
     ]].drop_duplicates().fillna("")
+
     odoo_customers.to_excel(output_path, index=False)
