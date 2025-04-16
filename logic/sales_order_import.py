@@ -1,7 +1,7 @@
 import pandas as pd
 
-def generate_sales_order_import(po_path, output_path):
-    df = pd.read_excel(po_path, sheet_name="Po Details")
+def generate_sales_order_import(po_df, output_path):
+    df = po_df  # ✅ already a DataFrame from Streamlit
     df["Customer"] = "Walmart Seller Center"
     df["Invoice Address"] = "Walmart Seller Center"
     df["Delivery Address"] = "Walmart Seller Center, " + df["Customer Name"].fillna("")
@@ -10,7 +10,6 @@ def generate_sales_order_import(po_path, output_path):
     df["order_line/price_unit"] = df["Item Cost"]
     df["order_line/product_uom"] = "Each - 1"
 
-    # Track line sequences per PO#
     grouped = df.groupby("PO#")
     all_rows = []
     for po, group in grouped:
