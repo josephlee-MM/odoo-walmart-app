@@ -13,27 +13,27 @@ if 'output_dir' not in st.session_state:
 
 st.title("Walmart PO → Odoo Import Files")
 
-# Upload inputs
+# Upload input files
 po_path = st.file_uploader("Upload Walmart PO Excel file", type=["xlsx"])
 pdf_path = st.file_uploader("Upload Combined Packing Slips PDF", type=["pdf"])
 
-# Output setup
+# Set up output folder
 output_dir = st.session_state['output_dir'] if st.session_state['output_dir'] else "dist/output"
 os.makedirs(output_dir, exist_ok=True)
 
 customer_output = os.path.join(output_dir, "customers.xlsx")
 sales_order_output = os.path.join(output_dir, "sales_orders.xlsx")
 
-# Main action
+# Main automation
 if st.button("Run Automation"):
     if po_path and pdf_path:
         st.session_state['files_ready'] = True
         st.session_state['output_dir'] = output_dir
 
-        # ✅ Read PO file
-        po_data = pd.read_excel(po_path, sheet_name="Po Details")
+        # ✅ Load Excel using default (first) sheet
+        po_data = pd.read_excel(po_path)
 
-        # ✅ Generate outputs
+        # ✅ Generate import files
         generate_sales_order_import(po_data, sales_order_output)
         generate_customer_import(po_data, customer_output)
         split_and_rename_pdfs(pdf_path, sales_order_output, output_dir)
@@ -42,7 +42,7 @@ if st.button("Run Automation"):
     else:
         st.warning("⚠️ Please upload both the PO Excel file and the PDF packing slip.")
 
-# Download section
+# File downloads
 if st.session_state['files_ready']:
     st.subheader("📥 Download Files")
 
@@ -59,3 +59,4 @@ if st.session_state['files_ready']:
         if fname.lower().endswith(".pdf"):
             with open(os.path.join(output_dir, fname), "rb") as f:
                 st.download_button(f"Download {fname}", f, file_name=fname)
+
