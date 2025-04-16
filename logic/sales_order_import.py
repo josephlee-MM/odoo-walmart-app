@@ -1,24 +1,30 @@
-import pandas as pd
-
-
 def generate_sales_order_import(po_data, output_path):
     import pandas as pd
+    import re
 
     orders = []
 
     for _, row in po_data.iterrows():
-        order_id = row['PO Number']
-        customer = row['Customer Name']
-        delivery_name = row['Customer Name']
-        delivery_phone = row['Customer Phone']
-        delivery_street = row['Street']
-        delivery_city = row['City']
-        delivery_state = row['State']
-        delivery_zip = str(row['Zip']).zfill(5)
+        order_id = row['PO#']
+        customer = row['Customer']
+        delivery_name = row['Delivery Address']
+        delivery_phone = ""  # Not provided
+
+        # Parse shipping address
+        full_address = str(row['Customer Shipping Address'])
+        match = re.search(r'^(.*?),\s*(.*?),\s*([A-Z]{2})\s+(\d{5})$', full_address)
+        if match:
+            delivery_street = match.group(1).strip()
+            delivery_city = match.group(2).strip()
+            delivery_state = match.group(3).strip()
+            delivery_zip = match.group(4).strip()
+        else:
+            delivery_street = delivery_city = delivery_state = delivery_zip = ''
+
         delivery_country = "United States"
-        sku = row['Item SKU']
-        qty = row['Quantity']
-        price = row['Item Cost']
+        sku = row['order_line/product_template_id']
+        qty = row['order_line/product_uom_qty']
+        price = row['order_line/price_unit']
 
         existing_order = next((o for o in orders if o['order_id'] == order_id), None)
         if existing_order:
@@ -64,3 +70,4 @@ def generate_sales_order_import(po_data, output_path):
         'Delivery Zip', 'Delivery Country', 'Item SKU', 'Quantity', 'Price'
     ])
     df.to_excel(output_path, index=False)
+
