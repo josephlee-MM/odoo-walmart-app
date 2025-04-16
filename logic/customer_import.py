@@ -29,8 +29,8 @@ def us_state_full(abbrev):
     }
     return mapping.get(abbrev, abbrev)
 
-def generate_customer_import(po_path, output_path):
-    df = pd.read_excel(po_path, sheet_name="Po Details")
+def generate_customer_import(po_df, output_path):
+    df = po_df  # ✅ already a DataFrame from Streamlit
     df[['street', 'city', 'state_code', 'zip']] = df['Customer Shipping Address'].apply(parse_address)
     df['state_id'] = df['state_code'].apply(us_state_full).apply(lambda x: f"{x} (US)")
     df['is_company'] = 0
