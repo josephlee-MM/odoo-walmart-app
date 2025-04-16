@@ -4,9 +4,9 @@ import re
 def parse_address(addr):
     try:
         parts = addr.split(',')
-        street = parts[1].strip() if len(parts) > 1 else ''
-        city = parts[2].strip() if len(parts) > 2 else ''
-        state_zip = parts[3].strip() if len(parts) > 3 else ''
+        street = parts[0].strip() if len(parts) > 0 else ''
+        city = parts[1].strip() if len(parts) > 1 else ''
+        state_zip = parts[2].strip() if len(parts) > 2 else ''
         match = re.search(r'([A-Z]{2})\s+(\d{5})', state_zip)
         state = match.group(1) if match else ''
         zip_code = match.group(2) if match else ''
@@ -27,7 +27,7 @@ def us_state_full(abbrev):
         "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas", "UT": "Utah", "VT": "Vermont",
         "VA": "Virginia", "WA": "Washington", "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming"
     }
-    return mapping.get(abbrev, abbrev) + " (US)"
+    return mapping.get(abbrev, abbrev)
 
 def generate_customer_import(po_path, output_path):
     df = pd.read_excel(po_path, sheet_name="Po Details")
