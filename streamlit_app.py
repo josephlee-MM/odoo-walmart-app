@@ -1,67 +1,62 @@
 import streamlit as st
-import pandas as pd
-
-import streamlit as st
 import os
+import pandas as pd
+from logic.customer_import import generate_customer_import
+from logic.sales_order_import import generate_sales_order_import
+from logic.split_pdfs import split_and_rename_pdfs
 
+# Session state to persist output dir and file status
 if 'files_ready' not in st.session_state:
     st.session_state['files_ready'] = False
 if 'output_dir' not in st.session_state:
     st.session_state['output_dir'] = None
 
-import tempfile
+st.title("Walmart PO → Odoo Import Files")
 
-from logic.customer_import import generate_customer_import
-from logic.sales_order_import import generate_sales_order_import
-from logic.split_pdfs import split_and_rename_pdfs
+# File uploaders
+po_path = st.file_uploader("Upload Walmart PO Excel file", type=["xlsx"])
+pdf_path = st.file_uploader("Upload Combined Packing Slips PDF", type=["pdf"])
 
-st.set_page_config(page_title="Walmart → Odoo Import Tool", layout="centered")
+# Set output path
+output_dir = st.session_state['output_dir'] if st.session_state['output_dir'] else "dist/output"
+os.makedirs(output_dir, exist_ok=True)
 
-st.title("🛒 Walmart → Odoo Import Tool")
-st.markdown("Upload your **Walmart PO (.xlsx)** and **Packing Slips (.pdf)** to generate import-ready files for Odoo v18.")
+customer_output = os.path.join(output_dir, "customers.xlsx")
+sales_order_output = os.path.join(output_dir, "sales_orders.xlsx")
 
-# File uploads
-po_file = st.file_uploader("📤 Upload Walmart PO Excel File", type=["xlsx"])
-pdf_file = st.file_uploader("📤 Upload Packing Slip PDF", type=["pdf"])
-output_folder = tempfile.mkdtemp()
+if st.button("Run Automation"):
+    if po_path and pdf_path:
+        st.session_state['files_ready'] = True
+        st.session_state['output_dir'] = output_dir
 
-# Run processing
-if st.button("🚀 Run Automation"):
+        # ✅ FIX: Load PO file into a DataFrame
+        po_data = pd.read_excel(po_path)
 
-    if not po_file or not pdf_file:
-        st.warning("⚠️ Please upload both a PO Excel and PDF file.")
+        # Process all files
+        generate_sales_order_import(po_data, sales_order_output)
+        generate_customer_import(po_data, customer_output)
+        split_and_rename_pdfs(pdf_path, output_dir, po_data)
+
+        st.success("✅ Files generated successfully.")
     else:
-        with st.spinner("Processing files..."):
+        st.warning("Please upload both the PO Excel file and the PDF packing slip.")
 
-            po_path = os.path.join(output_folder, "walmart_po.xlsx")
-            pdf_path = os.path.join(output_folder, "packing_slips.pdf")
+# Show download buttons
+if st.session_state['files_ready']:
+    st.subheader("📥 Download Files")
 
-            with open(po_path, "wb") as f:
-                f.write(po_file.read())
-            with open(pdf_path, "wb") as f:
-                f.write(pdf_file.read())
+    if os.path.exists(sales_order_output):
+        with open(sales_order_output, "rb") as f:
+            st.download_button("Download Sales Orders Excel", f, file_name="sales_orders.xlsx")
 
-            # Output file paths
-            customer_output = os.path.join(output_folder, "customers.xlsx")
-            sales_order_output = os.path.join(output_folder, "sales_orders.xlsx")
+    if os.path.exists(customer_output):
+        with open(customer_output, "rb") as f:
+            st.download_button("Download Customer Import Excel", f, file_name="customers.xlsx")
 
-            # Run your existing logic
-            generate_customer_import(po_path, customer_output)
-            generate_sales_order_import(po_path, sales_order_output)
-            split_and_rename_pdfs(pdf_path, sales_order_output, output_folder)
-
-            st.success("✅ Done! Download your files below:")
-
-            with open(customer_output, "rb") as f:
-                st.download_button("📥 Download Customers.xlsx", f, file_name="customers.xlsx")
-
-            with open(sales_order_output, "rb") as f:
-                st.download_button("📥 Download Sales Orders.xlsx", f, file_name="sales_orders.xlsx")
-
-            # List all generated PDFs
-            st.markdown("### 📎 Split Packing Slips:")
-            for file in os.listdir(output_folder):
-                if file.endswith(".pdf") and file != "packing_slips.pdf":
-                    with open(os.path.join(output_folder, file), "rb") as f:
-                        st.download_button(f"📄 {file}", f, file_name=file)
+    # Show all generated PDFs
+    st.subheader("📦 Packing Slips")
+    for fname in os.listdir(output_dir):
+        if fname.lower().endswith(".pdf"):
+            with open(os.path.join(output_dir, fname), "rb") as f:
+                st.download_button(f"Download {fname}", f, file_name=fname)
 
