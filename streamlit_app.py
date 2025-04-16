@@ -1,6 +1,14 @@
 import streamlit as st
 import pandas as pd
+
+import streamlit as st
 import os
+
+if 'files_ready' not in st.session_state:
+    st.session_state['files_ready'] = False
+if 'output_dir' not in st.session_state:
+    st.session_state['output_dir'] = None
+
 import tempfile
 
 from logic.customer_import import generate_customer_import
@@ -56,3 +64,4 @@ if st.button("🚀 Run Automation"):
                 if file.endswith(".pdf") and file != "packing_slips.pdf":
                     with open(os.path.join(output_folder, file), "rb") as f:
                         st.download_button(f"📄 {file}", f, file_name=file)
+
