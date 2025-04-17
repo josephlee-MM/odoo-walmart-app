@@ -1,27 +1,24 @@
 from PyPDF2 import PdfReader, PdfWriter
-import pandas as pd
+import re
 import os
 
 def split_and_rename_pdfs(pdf_path, sales_order_file, output_dir):
-    # Load the PDF
     reader = PdfReader(pdf_path)
-    
-    # Load the Excel with PO#s
-    so_df = pd.read_excel(sales_order_file)
 
-    # Get unique PO numbers in order
-    po_numbers = so_df["PO#"].dropna().unique().tolist()
+    for i, page in enumerate(reader.pages):
+        text = page.extract_text()
 
-    # Loop through pages and PO#s
-    for i, po in enumerate(po_numbers):
-        if i >= len(reader.pages):
-            print(f"Warning: Not enough PDF pages for PO {po}")
-            break
+        # Try to extract Ship To name
+        name_match = re.search(r'Ship to\s*\n(.+)', text, re.IGNORECASE)
+        if name_match:
+            name = name_match.group(1).strip()
+            filename = re.sub(r'[^a-zA-Z0-9]+', '_', name).strip("_")
+        else:
+            filename = f"Page_{i+1}"
 
         writer = PdfWriter()
-        writer.add_page(reader.pages[i])
+        writer.add_page(page)
 
-        # Write PDF to output folder
-        output_path = os.path.join(output_dir, f"{po}.pdf")
+        output_path = os.path.join(output_dir, f"{filename}.pdf")
         with open(output_path, "wb") as f:
             writer.write(f)
