@@ -11,7 +11,7 @@ if 'files_ready' not in st.session_state:
 if 'output_dir' not in st.session_state:
     st.session_state['output_dir'] = None
 
-st.title("Walmart PO → Odoo Import Files")
+st.title("🛒 Walmart Orders → 🤖 Odoo Imports")
 
 # Upload input files
 po_path = st.file_uploader("Upload Walmart PO Excel file", type=["xlsx"])
